@@ -48,25 +48,43 @@ export default function Page() {
   const [extra, setExtra] = useState("");
   const [result, setResult] = useState(null);
 
-  const [darkMode, setDarkMode] = useState(false);
+  const [premium, setPremium] = useState(false);
 
-  const bg = darkMode ? "#0b1220" : "#f4f7fb";
-  const card = darkMode ? "#121a2b" : "#ffffff";
-  const text = darkMode ? "#e6edf6" : "#0f172a";
+  const bg = "#0b1220";
+  const card = "rgba(18,26,43,0.8)";
+  const text = "#e6edf6";
   const accent = "#22c55e";
+
+  // 💳 STRIPE UPGRADE
+  const upgrade = async () => {
+    const res = await fetch("/api/checkout", { method: "POST" });
+    const data = await res.json();
+    window.location.href = data.url;
+  };
+
+  // 🔒 SAVE PREMIUM STATUS
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success")) {
+      setPremium(true);
+      localStorage.setItem("premium", "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("premium");
+    if (saved === "true") setPremium(true);
+  }, []);
 
   const addDebt = () => {
     if (!name || !balance || !interest || !minimum) return;
 
-    setDebts([
-      ...debts,
-      {
-        name,
-        balance: parseFloat(balance),
-        interest: parseFloat(interest),
-        minimum: parseFloat(minimum),
-      },
-    ]);
+    setDebts([...debts, {
+      name,
+      balance: parseFloat(balance),
+      interest: parseFloat(interest),
+      minimum: parseFloat(minimum),
+    }]);
 
     setName(""); setBalance(""); setInterest(""); setMinimum("");
   };
@@ -97,13 +115,10 @@ export default function Page() {
       minHeight: "100vh"
     }}>
 
-      {/* HEADER */}
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ margin: 0 }}>💸 Debt Planner</h1>
-        <p style={{ opacity: 0.6 }}>RA Customs</p>
-      </div>
+      <h1>💸 Debt Planner</h1>
+      <p style={{ opacity: 0.6 }}>RA Customs</p>
 
-      {/* DASHBOARD CARD */}
+      {/* OVERVIEW */}
       <div className="card">
         <h3>Overview</h3>
 
@@ -126,10 +141,7 @@ export default function Page() {
         {result && (
           <>
             <div className="progress">
-              <div
-                className="progressFill"
-                style={{ width: `${result.progress}%` }}
-              />
+              <div className="progressFill" style={{ width: `${result.progress}%` }} />
             </div>
             <p>{result.progress.toFixed(1)}% complete</p>
           </>
@@ -154,13 +166,22 @@ export default function Page() {
 
         <input placeholder="Extra Monthly Payment" value={extra} onChange={e => setExtra(e.target.value)} />
 
-        <button className="btn primary" onClick={calculate}>
-          Calculate Plan
+        <button
+          className="btn primary"
+          onClick={premium ? calculate : upgrade}
+        >
+          {premium ? "Calculate Plan" : "Unlock Premium 💳"}
         </button>
+
+        {!premium && (
+          <p style={{ marginTop: 10, opacity: 0.6 }}>
+            🔒 Premium required to calculate plan
+          </p>
+        )}
       </div>
 
       {/* GRAPH */}
-      {result && (
+      {premium && result && (
         <div className="card">
           <h3>Projection</h3>
 
@@ -175,11 +196,6 @@ export default function Page() {
         </div>
       )}
 
-      {/* FOOTER */}
-      <div style={{ textAlign: "center", marginTop: 30, opacity: 0.5 }}>
-        Built by RA Customs
-      </div>
-
       {/* STYLES */}
       <style>{`
         .card {
@@ -187,7 +203,7 @@ export default function Page() {
           padding: 18px;
           border-radius: 16px;
           margin-bottom: 16px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         }
 
         input {
@@ -204,7 +220,6 @@ export default function Page() {
           border-radius: 10px;
           border: none;
           cursor: pointer;
-          background: #e2e8f0;
         }
 
         .btn.primary {
