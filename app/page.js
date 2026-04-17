@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 function simulate(debts, extra, method) {
   let sorted = [...debts];
@@ -12,6 +13,9 @@ function simulate(debts, extra, method) {
 
   let month = 0;
   let totalInterest = 0;
+  let startBalance = debts.reduce((sum, d) => sum + d.balance, 0);
+  let remaining = startBalance;
+  let data = [];
 
   while (sorted.some(d => d.balance > 0) && month < 600) {
     month++;
@@ -33,9 +37,18 @@ function simulate(debts, extra, method) {
       payment = Math.min(payment, d.balance);
       d.balance -= payment;
     }
+
+    remaining = sorted.reduce((sum, d) => sum + d.balance, 0);
+
+    data.push({
+      month,
+      balance: Math.round(remaining)
+    });
   }
 
-  return { month, totalInterest };
+  let progress = startBalance > 0 ? ((startBalance - remaining) / startBalance) * 100 : 0;
+
+  return { month, totalInterest, progress, data };
 }
 
 export default function Page() {
@@ -84,56 +97,66 @@ export default function Page() {
   const totalDebt = debts.reduce((sum, d) => sum + d.balance, 0);
 
   return (
-    <main style={{ padding: 30, maxWidth: 500, margin: "auto", fontFamily: "Arial" }}>
-      <h1>Debt Freedom Planner 💸</h1>
+    <main style={{ padding: 30, maxWidth: 600, margin: "auto", fontFamily: "Arial" }}>
+      <h1 style={{ textAlign: "center" }}>Debt Freedom Planner 💸</h1>
 
-      <h3>Add Debt</h3>
-      <input placeholder="Debt Name" value={name} onChange={e => setName(e.target.value)} /><br /><br />
-      <input placeholder="Balance" value={balance} onChange={e => setBalance(e.target.value)} /><br /><br />
-      <input placeholder="Interest %" value={interest} onChange={e => setInterest(e.target.value)} /><br /><br />
-      <input placeholder="Minimum Payment" value={minimum} onChange={e => setMinimum(e.target.value)} /><br /><br />
-
-      <button onClick={addDebt}>Add Debt</button>
+      <div style={{ border: "1px solid #ddd", padding: 15, borderRadius: 8 }}>
+        <h3>Add Debt</h3>
+        <input placeholder="Debt Name" value={name} onChange={e => setName(e.target.value)} /><br /><br />
+        <input placeholder="Balance" value={balance} onChange={e => setBalance(e.target.value)} /><br /><br />
+        <input placeholder="Interest %" value={interest} onChange={e => setInterest(e.target.value)} /><br /><br />
+        <input placeholder="Minimum Payment" value={minimum} onChange={e => setMinimum(e.target.value)} /><br /><br />
+        <button onClick={addDebt}>Add Debt</button>
+      </div>
 
       {debts.length > 0 && (
-        <div style={{ marginTop: 20 }}>
+        <div style={{ marginTop: 20, border: "1px solid #ddd", padding: 15, borderRadius: 8 }}>
           <h3>Your Debts</h3>
           {debts.map((d, i) => (
-            <div key={i} style={{ borderBottom: "1px solid #ccc", padding: 5 }}>
+            <div key={i}>
               <b>{d.name}</b> - ${d.balance} @ {d.interest}%
             </div>
           ))}
-
-          <p style={{ marginTop: 10 }}>
-            <b>Total Debt:</b> ${totalDebt.toFixed(2)}
-          </p>
+          <p><b>Total Debt:</b> ${totalDebt.toFixed(2)}</p>
         </div>
       )}
 
-      <hr />
+      <div style={{ marginTop: 20, border: "1px solid #ddd", padding: 15, borderRadius: 8 }}>
+        <h3>Plan Settings</h3>
+        <input placeholder="Extra Monthly Payment" value={extra} onChange={e => setExtra(e.target.value)} /><br /><br />
 
-      <h3>Plan Settings</h3>
-      <input placeholder="Extra Monthly Payment" value={extra} onChange={e => setExtra(e.target.value)} /><br /><br />
+        <button onClick={() => setMethod("snowball")}>Snowball</button>
+        <button onClick={() => setMethod("avalanche")} style={{ marginLeft: 10 }}>Avalanche</button>
 
-      <div>
-        <button onClick={() => setMethod("snowball")}>
-          Snowball
-        </button>
-        <button onClick={() => setMethod("avalanche")} style={{ marginLeft: 10 }}>
-          Avalanche
-        </button>
+        <br /><br />
+        <button onClick={calculate}>Calculate Plan</button>
       </div>
 
-      <br />
-      <button onClick={calculate}>Calculate Plan</button>
-
       {result && (
-        <div style={{ marginTop: 20 }}>
+        <div style={{ marginTop: 20, border: "1px solid #ddd", padding: 15, borderRadius: 8 }}>
           <h2>Your Plan</h2>
           <p><b>Debt-free in:</b> {result.month} months</p>
           <p><b>Payoff date:</b> {result.payoffDate}</p>
           <p><b>Total interest:</b> ${result.totalInterest.toFixed(2)}</p>
           <p><b>You save:</b> ${result.interestSaved.toFixed(2)}</p>
+
+          <div style={{ marginTop: 10 }}>
+            <b>Progress:</b>
+            <div style={{ background: "#eee", height: 10 }}>
+              <div style={{ width: `${result.progress}%`, background: "green", height: "100%" }} />
+            </div>
+            <p>{result.progress.toFixed(1)}%</p>
+          </div>
+
+          <h3>Debt Over Time</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={result.data}>
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="balance" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       )}
     </main>
