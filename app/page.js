@@ -40,10 +40,7 @@ function simulate(debts, extra, method) {
 
     remaining = sorted.reduce((sum, d) => sum + d.balance, 0);
 
-    data.push({
-      month,
-      balance: Math.round(remaining)
-    });
+    data.push({ month, balance: Math.round(remaining) });
   }
 
   let progress = startBalance > 0 ? ((startBalance - remaining) / startBalance) * 100 : 0;
@@ -60,6 +57,9 @@ export default function Page() {
   const [extra, setExtra] = useState("");
   const [method, setMethod] = useState("snowball");
   const [result, setResult] = useState(null);
+
+  // 🎨 Theme color
+  const [color, setColor] = useState("#22c55e");
 
   const addDebt = () => {
     if (!name || !balance || !interest || !minimum) return;
@@ -100,13 +100,19 @@ export default function Page() {
     <main style={{ padding: 30, maxWidth: 600, margin: "auto", fontFamily: "Arial" }}>
       <h1 style={{ textAlign: "center" }}>Debt Freedom Planner 💸</h1>
 
+      {/* 🎨 Color Picker */}
+      <div style={{ marginBottom: 20 }}>
+        <label><b>Pick Theme Color:</b> </label>
+        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+      </div>
+
       <div style={{ border: "1px solid #ddd", padding: 15, borderRadius: 8 }}>
         <h3>Add Debt</h3>
         <input placeholder="Debt Name" value={name} onChange={e => setName(e.target.value)} /><br /><br />
         <input placeholder="Balance" value={balance} onChange={e => setBalance(e.target.value)} /><br /><br />
         <input placeholder="Interest %" value={interest} onChange={e => setInterest(e.target.value)} /><br /><br />
         <input placeholder="Minimum Payment" value={minimum} onChange={e => setMinimum(e.target.value)} /><br /><br />
-        <button onClick={addDebt}>Add Debt</button>
+        <button style={{ background: color, color: "white" }} onClick={addDebt}>Add Debt</button>
       </div>
 
       {debts.length > 0 && (
@@ -125,11 +131,11 @@ export default function Page() {
         <h3>Plan Settings</h3>
         <input placeholder="Extra Monthly Payment" value={extra} onChange={e => setExtra(e.target.value)} /><br /><br />
 
-        <button onClick={() => setMethod("snowball")}>Snowball</button>
-        <button onClick={() => setMethod("avalanche")} style={{ marginLeft: 10 }}>Avalanche</button>
+        <button style={{ background: color, color: "white" }} onClick={() => setMethod("snowball")}>Snowball</button>
+        <button style={{ marginLeft: 10, background: color, color: "white" }} onClick={() => setMethod("avalanche")}>Avalanche</button>
 
         <br /><br />
-        <button onClick={calculate}>Calculate Plan</button>
+        <button style={{ background: color, color: "white" }} onClick={calculate}>Calculate Plan</button>
       </div>
 
       {result && (
@@ -143,7 +149,7 @@ export default function Page() {
           <div style={{ marginTop: 10 }}>
             <b>Progress:</b>
             <div style={{ background: "#eee", height: 10 }}>
-              <div style={{ width: `${result.progress}%`, background: "green", height: "100%" }} />
+              <div style={{ width: `${result.progress}%`, background: color, height: "100%" }} />
             </div>
             <p>{result.progress.toFixed(1)}%</p>
           </div>
@@ -154,7 +160,7 @@ export default function Page() {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="balance" />
+              <Line type="monotone" dataKey="balance" stroke={color} />
             </LineChart>
           </ResponsiveContainer>
         </div>
