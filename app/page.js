@@ -81,6 +81,8 @@ export default function Page() {
     });
   };
 
+  const totalDebt = debts.reduce((sum, d) => sum + d.balance, 0);
+
   return (
     <main style={{ padding: 30, maxWidth: 500, margin: "auto", fontFamily: "Arial" }}>
       <h1>Debt Freedom Planner 💸</h1>
@@ -92,6 +94,21 @@ export default function Page() {
       <input placeholder="Minimum Payment" value={minimum} onChange={e => setMinimum(e.target.value)} /><br /><br />
 
       <button onClick={addDebt}>Add Debt</button>
+
+      {debts.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Your Debts</h3>
+          {debts.map((d, i) => (
+            <div key={i} style={{ borderBottom: "1px solid #ccc", padding: 5 }}>
+              <b>{d.name}</b> - ${d.balance} @ {d.interest}%
+            </div>
+          ))}
+
+          <p style={{ marginTop: 10 }}>
+            <b>Total Debt:</b> ${totalDebt.toFixed(2)}
+          </p>
+        </div>
+      )}
 
       <hr />
 
