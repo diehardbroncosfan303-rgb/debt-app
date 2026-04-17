@@ -9,7 +9,7 @@
     "next": "latest",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "recharts": "^2.10.0"
+    "recharts": "^2.10.0",
     "stripe": "^14.0.0"
   }
 }
