@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import confetti from "canvas-confetti";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 function simulate(debts, extra, method) {
@@ -40,7 +39,6 @@ function simulate(debts, extra, method) {
     }
 
     remaining = sorted.reduce((sum, d) => sum + d.balance, 0);
-
     data.push({ month, balance: Math.round(remaining) });
   }
 
@@ -61,49 +59,20 @@ export default function Page() {
 
   const [color, setColor] = useState("#22c55e");
   const [darkMode, setDarkMode] = useState(false);
-  const [milestone, setMilestone] = useState(0);
 
-  // Save settings
+  // 🔥 Monthly tracking
+  const [payment, setPayment] = useState("");
+  const [streak, setStreak] = useState(0);
+  const [status, setStatus] = useState("Not started");
+
   useEffect(() => {
-    const savedColor = localStorage.getItem("color");
-    const savedMode = localStorage.getItem("darkMode");
-    if (savedColor) setColor(savedColor);
-    if (savedMode === "true") setDarkMode(true);
+    const savedStreak = localStorage.getItem("monthlyStreak");
+    if (savedStreak) setStreak(parseInt(savedStreak));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("color", color);
-    localStorage.setItem("darkMode", darkMode);
-  }, [color, darkMode]);
-
-  // 🎉 Milestone logic
-  useEffect(() => {
-    if (!result) return;
-
-    let p = result.progress;
-
-    if (p >= 100 && milestone < 100) {
-      fireConfetti(200);
-      setMilestone(100);
-    } else if (p >= 75 && milestone < 75) {
-      fireConfetti(120);
-      setMilestone(75);
-    } else if (p >= 50 && milestone < 50) {
-      fireConfetti(80);
-      setMilestone(50);
-    } else if (p >= 25 && milestone < 25) {
-      fireConfetti(40);
-      setMilestone(25);
-    }
-  }, [result]);
-
-  const fireConfetti = (count) => {
-    confetti({
-      particleCount: count,
-      spread: 100,
-      origin: { y: 0.6 }
-    });
-  };
+    localStorage.setItem("monthlyStreak", streak);
+  }, [streak]);
 
   const addDebt = () => {
     if (!name || !balance || !interest || !minimum) return;
@@ -138,24 +107,48 @@ export default function Page() {
     });
   };
 
-  const totalDebt = debts.reduce((sum, d) => sum + d.balance, 0);
+  // 🔥 Track monthly payment
+  const logPayment = () => {
+    const required = debts.reduce((sum, d) => sum + d.minimum, 0);
+    const paid = parseFloat(payment);
 
+    if (!paid) return;
+
+    if (paid >= required) {
+      setStreak(prev => prev + 1);
+      setStatus("On Track ✅");
+    } else {
+      setStreak(0);
+      setStatus("Behind ⚠️");
+    }
+
+    setPayment("");
+  };
+
+  const totalDebt = debts.reduce((sum, d) => sum + d.balance, 0);
   const bg = darkMode ? "#111" : "#fff";
   const text = darkMode ? "#fff" : "#000";
 
-  // 🧑 Character messages
   const getMessage = () => {
-    if (!result) return "Let's crush your debt 💪";
-    if (result.progress >= 100) return "YOU DID IT! 🎉🔥";
-    if (result.progress >= 75) return "Almost there!! 🚀";
-    if (result.progress >= 50) return "Halfway done, keep pushing 💯";
-    if (result.progress >= 25) return "Great start! Stay consistent 👏";
-    return "Let’s get started 💪";
+    if (!result) return "Let’s build your plan 💪";
+    if (result.progress >= 100) return "YOU DID IT 🎉";
+    if (status.includes("Behind")) return "Let’s get back on track 💪";
+    if (streak >= 3) return "You're crushing it 🔥";
+    return "Stay consistent 👍";
   };
 
   return (
     <main style={{ padding: 30, maxWidth: 600, margin: "auto", background: bg, color: text }}>
       <h1 style={{ textAlign: "center" }}>Debt Freedom Planner 💸</h1>
+
+      {/* 🔥 Monthly streak */}
+      <div style={{ textAlign: "center", marginBottom: 10 }}>
+        🔥 {streak} month{streak !== 1 ? "s" : ""} on track
+      </div>
+
+      <div style={{ textAlign: "center", marginBottom: 10 }}>
+        Status: {status}
+      </div>
 
       {/* Theme */}
       <div>
@@ -165,15 +158,8 @@ export default function Page() {
         </button>
       </div>
 
-      {/* 🧑 Character */}
-      <div style={{
-        marginTop: 15,
-        padding: 10,
-        border: "1px solid #ccc",
-        borderRadius: 8,
-        textAlign: "center",
-        fontWeight: "bold"
-      }}>
+      {/* Coach */}
+      <div style={{ textAlign: "center", marginTop: 10 }}>
         🤖 {getMessage()}
       </div>
 
@@ -196,7 +182,14 @@ export default function Page() {
 
       <input placeholder="Extra Monthly Payment" value={extra} onChange={e => setExtra(e.target.value)} /><br /><br />
 
-      <button style={{ background: color, color: "#fff" }} onClick={calculate}>Calculate</button>
+      <button style={{ background: color, color: "#fff" }} onClick={calculate}>Calculate Plan</button>
+
+      <hr />
+
+      {/* 💰 Monthly payment tracker */}
+      <h3>Log Monthly Payment</h3>
+      <input placeholder="Amount Paid" value={payment} onChange={(e) => setPayment(e.target.value)} />
+      <button style={{ marginLeft: 10 }} onClick={logPayment}>Log Payment</button>
 
       {result && (
         <div style={{ marginTop: 20 }}>
@@ -210,7 +203,7 @@ export default function Page() {
             <div style={{ width: `${result.progress}%`, background: color, height: "100%" }} />
           </div>
 
-          <h3>Progress: {result.progress.toFixed(1)}%</h3>
+          <h3>{result.progress.toFixed(1)}%</h3>
 
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={result.data}>
