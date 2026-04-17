@@ -2,12 +2,7 @@
 import { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-// PWA metadata
-export const metadata = {
-  title: "Debt Freedom Planner",
-  description: "Track and eliminate your debt",
-  manifest: "/manifest.json",
-};
+
 
 function simulate(debts, extra) {
   let sorted = [...debts].sort((a, b) => a.balance - b.balance);
