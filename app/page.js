@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 function simulate(debts, extra, method) {
@@ -58,8 +58,24 @@ export default function Page() {
   const [method, setMethod] = useState("snowball");
   const [result, setResult] = useState(null);
 
-  // 🎨 Theme color
+  // Theme + saved preferences
   const [color, setColor] = useState("#22c55e");
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Load saved settings
+  useEffect(() => {
+    const savedColor = localStorage.getItem("color");
+    const savedMode = localStorage.getItem("darkMode");
+
+    if (savedColor) setColor(savedColor);
+    if (savedMode === "true") setDarkMode(true);
+  }, []);
+
+  // Save settings
+  useEffect(() => {
+    localStorage.setItem("color", color);
+    localStorage.setItem("darkMode", darkMode);
+  }, [color, darkMode]);
 
   const addDebt = () => {
     if (!name || !balance || !interest || !minimum) return;
@@ -96,14 +112,24 @@ export default function Page() {
 
   const totalDebt = debts.reduce((sum, d) => sum + d.balance, 0);
 
+  const bg = darkMode ? "#111" : "#fff";
+  const text = darkMode ? "#fff" : "#000";
+
   return (
-    <main style={{ padding: 30, maxWidth: 600, margin: "auto", fontFamily: "Arial" }}>
+    <main style={{ padding: 30, maxWidth: 600, margin: "auto", fontFamily: "Arial", background: bg, color: text, minHeight: "100vh" }}>
       <h1 style={{ textAlign: "center" }}>Debt Freedom Planner 💸</h1>
 
-      {/* 🎨 Color Picker */}
+      {/* Controls */}
       <div style={{ marginBottom: 20 }}>
-        <label><b>Pick Theme Color:</b> </label>
+        <label><b>Theme Color:</b> </label>
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          style={{ marginLeft: 10 }}
+        >
+          {darkMode ? "Light Mode" : "Dark Mode"}
+        </button>
       </div>
 
       <div style={{ border: "1px solid #ddd", padding: 15, borderRadius: 8 }}>
@@ -112,7 +138,7 @@ export default function Page() {
         <input placeholder="Balance" value={balance} onChange={e => setBalance(e.target.value)} /><br /><br />
         <input placeholder="Interest %" value={interest} onChange={e => setInterest(e.target.value)} /><br /><br />
         <input placeholder="Minimum Payment" value={minimum} onChange={e => setMinimum(e.target.value)} /><br /><br />
-        <button style={{ background: color, color: "white" }} onClick={addDebt}>Add Debt</button>
+        <button style={{ background: color, color: "#fff" }} onClick={addDebt}>Add Debt</button>
       </div>
 
       {debts.length > 0 && (
@@ -131,11 +157,11 @@ export default function Page() {
         <h3>Plan Settings</h3>
         <input placeholder="Extra Monthly Payment" value={extra} onChange={e => setExtra(e.target.value)} /><br /><br />
 
-        <button style={{ background: color, color: "white" }} onClick={() => setMethod("snowball")}>Snowball</button>
-        <button style={{ marginLeft: 10, background: color, color: "white" }} onClick={() => setMethod("avalanche")}>Avalanche</button>
+        <button style={{ background: color, color: "#fff" }} onClick={() => setMethod("snowball")}>Snowball</button>
+        <button style={{ background: color, color: "#fff", marginLeft: 10 }} onClick={() => setMethod("avalanche")}>Avalanche</button>
 
         <br /><br />
-        <button style={{ background: color, color: "white" }} onClick={calculate}>Calculate Plan</button>
+        <button style={{ background: color, color: "#fff" }} onClick={calculate}>Calculate Plan</button>
       </div>
 
       {result && (
@@ -148,7 +174,7 @@ export default function Page() {
 
           <div style={{ marginTop: 10 }}>
             <b>Progress:</b>
-            <div style={{ background: "#eee", height: 10 }}>
+            <div style={{ background: "#ccc", height: 10 }}>
               <div style={{ width: `${result.progress}%`, background: color, height: "100%" }} />
             </div>
             <p>{result.progress.toFixed(1)}%</p>
