@@ -11,35 +11,29 @@ import {
 
 /* 🎉 CONFETTI */
 const confetti = () => {
-  for (let i = 0; i < 80; i++) {
-    const div = document.createElement("div");
-    div.style.position = "fixed";
-    div.style.width = "6px";
-    div.style.height = "6px";
-    div.style.background = "hsl(" + Math.random() * 360 + ",100%,50%)";
-    div.style.top = "-10px";
-    div.style.left = Math.random() * window.innerWidth + "px";
-    div.style.zIndex = 9999;
-    div.style.borderRadius = "50%";
-    document.body.appendChild(div);
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement("div");
+    el.style.position = "fixed";
+    el.style.width = "6px";
+    el.style.height = "6px";
+    el.style.background = `hsl(${Math.random() * 360},100%,50%)`;
+    el.style.top = "-10px";
+    el.style.left = Math.random() * window.innerWidth + "px";
+    el.style.zIndex = 9999;
+    document.body.appendChild(el);
 
-    const fall = div.animate(
-      [
-        { transform: "translateY(0)" },
-        { transform: `translateY(${window.innerHeight}px)` },
-      ],
-      { duration: 1200, easing: "ease-out" }
-    );
-
-    fall.onfinish = () => div.remove();
+    el.animate(
+      [{ transform: "translateY(0)" }, { transform: "translateY(100vh)" }],
+      { duration: 1000 }
+    ).onfinish = () => el.remove();
   }
 };
 
 /* 📊 SIMULATION */
 function simulate(debts, extra) {
-  let month = 0;
   let total = debts.reduce((s, d) => s + d.balance, 0);
   let data = [];
+  let month = 0;
 
   let current = debts.map((d) => ({ ...d }));
 
@@ -62,11 +56,15 @@ function simulate(debts, extra) {
 }
 
 export default function Page() {
+  /* 🔑 STATE */
   const [premium, setPremium] = useState(false);
   const [debts, setDebts] = useState([]);
   const [data, setData] = useState([]);
   const [extra, setExtra] = useState("");
   const [achievements, setAchievements] = useState([]);
+
+  const [freeUses, setFreeUses] = useState(0);
+  const FREE_LIMIT = 5;
 
   const [name, setName] = useState("");
   const [balance, setBalance] = useState("");
@@ -83,14 +81,19 @@ export default function Page() {
     window.location.href = d.url;
   };
 
-  /* ✅ PREMIUM LOAD */
+  /* LOAD STATE */
   useEffect(() => {
+    if (localStorage.getItem("premium") === "true") setPremium(true);
+
+    const used = localStorage.getItem("freeUses");
+    if (used) setFreeUses(parseInt(used));
+
     const params = new URLSearchParams(window.location.search);
     if (params.get("success")) {
       localStorage.setItem("premium", "true");
       setPremium(true);
+      alert("🎉 Premium unlocked!");
     }
-    if (localStorage.getItem("premium") === "true") setPremium(true);
   }, []);
 
   /* ➕ ADD DEBT */
@@ -113,9 +116,12 @@ export default function Page() {
     setMin("");
   };
 
-  /* 💳 PAY DEBT (PREMIUM ONLY) */
+  /* 💸 PAY DEBT */
   const payDebt = (i) => {
-    if (!premium) return upgrade();
+    if (!premium && freeUses >= FREE_LIMIT) {
+      alert("🔒 Free limit reached. Upgrade to continue.");
+      return upgrade();
+    }
 
     let updated = [...debts];
 
@@ -126,12 +132,17 @@ export default function Page() {
 
     if (updated[i].balance === 0) {
       confetti();
-      setAchievements((prev) => [...prev, `Paid off ${updated[i].name}`]);
+      setAchievements((a) => [...a, `Paid off ${updated[i].name}`]);
     }
 
     setDebts(updated);
 
-    // auto update chart
+    if (!premium) {
+      const newCount = freeUses + 1;
+      setFreeUses(newCount);
+      localStorage.setItem("freeUses", newCount);
+    }
+
     const result = simulate(updated, parseFloat(extra));
     setData(result);
   };
@@ -150,14 +161,17 @@ export default function Page() {
       <h1>💸 Debt Planner</h1>
 
       {/* DASHBOARD */}
-      <div style={styles.dashboard}>
-        <div>
-          <p>Total Debt</p>
-          <h2>${totalDebt.toFixed(0)}</h2>
-        </div>
+      <div style={styles.card}>
+        <h2>Total Debt: ${totalDebt.toFixed(0)}</h2>
 
-        <button onClick={upgrade} style={styles.upgradeBtn}>
-          {premium ? "Premium ✅" : "Upgrade 💳"}
+        {!premium && (
+          <p>
+            Free uses left: {Math.max(0, FREE_LIMIT - freeUses)}
+          </p>
+        )}
+
+        <button onClick={upgrade} style={styles.btn}>
+          {premium ? "Premium Active" : "Upgrade 💳"}
         </button>
       </div>
 
@@ -183,7 +197,7 @@ export default function Page() {
             </div>
 
             <button onClick={() => payDebt(i)} style={styles.payBtn}>
-              {premium ? "Pay 💸" : "🔒 Premium"}
+              {premium ? "Pay 💸" : "Try 💸"}
             </button>
           </div>
         ))}
@@ -242,32 +256,24 @@ const styles = {
     maxWidth: 900,
     margin: "auto",
     fontFamily: "sans-serif",
-    background: "#0f172a",
-    color: "white",
-    minHeight: "100vh",
-  },
-  dashboard: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  upgradeBtn: {
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    padding: 10,
-    borderRadius: 8,
   },
   card: {
-    background: "#1e293b",
+    background: "#f1f5f9",
     padding: 20,
-    borderRadius: 12,
+    borderRadius: 10,
     marginBottom: 20,
   },
   row: {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: 10,
+  },
+  btn: {
+    background: "#2563eb",
+    color: "white",
+    border: "none",
+    padding: 10,
+    borderRadius: 6,
   },
   payBtn: {
     background: "#22c55e",
