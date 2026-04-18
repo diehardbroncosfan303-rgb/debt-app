@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 
 /* 🎉 CONFETTI */
 const confetti = () => {
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 30; i++) {
     const el = document.createElement("div");
     el.style.position = "fixed";
     el.style.width = "6px";
@@ -11,12 +11,11 @@ const confetti = () => {
     el.style.background = `hsl(${Math.random() * 360},100%,50%)`;
     el.style.top = "-10px";
     el.style.left = Math.random() * window.innerWidth + "px";
-    el.style.zIndex = 9999;
     document.body.appendChild(el);
 
     el.animate(
       [{ transform: "translateY(0)" }, { transform: "translateY(100vh)" }],
-      { duration: 900 }
+      { duration: 800 }
     ).onfinish = () => el.remove();
   }
 };
@@ -37,6 +36,8 @@ const animateValue = (start, end, duration, callback) => {
 
 export default function Page() {
   /* STATE */
+  const [tab, setTab] = useState("dashboard");
+
   const [debts, setDebts] = useState([]);
   const [displayBalances, setDisplayBalances] = useState({});
   const [paymentInputs, setPaymentInputs] = useState({});
@@ -58,7 +59,6 @@ export default function Page() {
 
   const trialActive = freeUses < FREE_LIMIT;
 
-  /* LOAD */
   useEffect(() => {
     const used = localStorage.getItem("freeUses");
     if (used) setFreeUses(parseInt(used));
@@ -96,7 +96,7 @@ export default function Page() {
     if (!badges.includes(name)) {
       setBadges((b) => [...b, name]);
       setAnimateBadge(name);
-      setTimeout(() => setAnimateBadge(null), 1200);
+      setTimeout(() => setAnimateBadge(null), 1000);
     }
   };
 
@@ -168,115 +168,112 @@ export default function Page() {
   const total = debts.reduce((s, d) => s + d.balance, 0);
   const progress = goal ? Math.min((1 - total / goal) * 100, 100) : 0;
 
-  const today = new Date().toISOString().slice(5, 10);
-
   return (
     <main style={styles.main}>
-      {/* HEADER */}
+      {/* BRAND HEADER */}
       <div style={styles.header}>
-        <h1>Debt Planner</h1>
-        <p>Total Balance</p>
+        <h1>💸 Debt Planner</h1>
+        <p>by RA Customs</p>
         <h2>${total.toFixed(2)}</h2>
       </div>
 
-      {/* REMINDER */}
-      {Object.values(dueDates).includes(today) && (
-        <div style={styles.alert}>
-          ⚠️ A bill is due today
+      {/* NAV */}
+      <div style={styles.tabs}>
+        <button
+          style={tab === "dashboard" ? styles.activeTab : styles.tab}
+          onClick={() => setTab("dashboard")}
+        >
+          🏠
+        </button>
+        <button
+          style={tab === "coach" ? styles.activeTab : styles.tab}
+          onClick={() => setTab("coach")}
+        >
+          🧠
+        </button>
+        <button
+          style={tab === "achievements" ? styles.activeTab : styles.tab}
+          onClick={() => setTab("achievements")}
+        >
+          🏆
+        </button>
+      </div>
+
+      {/* DASHBOARD */}
+      {tab === "dashboard" && (
+        <>
+          <div style={styles.card}>
+            <p>Trial: {freeUses}/{FREE_LIMIT}</p>
+          </div>
+
+          <div style={styles.card}>
+            <h3>🎯 Goal</h3>
+            <input onChange={(e) => setGoal(parseFloat(e.target.value))} />
+            <div style={styles.bar}>
+              <div style={{ ...styles.fill, width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div style={styles.card}>
+            <input placeholder="Name" onChange={(e) => setName(e.target.value)} />
+            <input placeholder="Balance" onChange={(e) => setBalance(e.target.value)} />
+            <input type="date" onChange={(e) => setDue(e.target.value.slice(5))} />
+            <button onClick={addDebt}>Add</button>
+          </div>
+
+          {debts.map((d, i) => (
+            <div key={i} style={styles.account}>
+              <div>
+                <strong>{d.name}</strong>
+                <p>${(displayBalances[i] ?? d.balance).toFixed(2)}</p>
+                <small>Due: {dueDates[i] || "--"}</small>
+              </div>
+
+              <div>
+                <input
+                  onChange={(e) =>
+                    setPaymentInputs({
+                      ...paymentInputs,
+                      [i]: e.target.value,
+                    })
+                  }
+                  style={styles.input}
+                />
+                <button onClick={() => applyPayment(i)}>Pay</button>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* COACH */}
+      {tab === "coach" && (
+        <div style={styles.card}>
+          <h3>🧠 Coach</h3>
+          <p>{getCoach()}</p>
         </div>
       )}
 
-      {/* TRIAL */}
-      <div style={styles.card}>
-        <p>
-          Trial: {freeUses}/{FREE_LIMIT}
-        </p>
-      </div>
-
-      {/* GOAL */}
-      <div style={styles.card}>
-        <h3>🎯 Goal</h3>
-        <input
-          placeholder="Target amount"
-          onChange={(e) => setGoal(parseFloat(e.target.value))}
-        />
-        <div style={styles.bar}>
-          <div style={{ ...styles.fill, width: `${progress}%` }} />
-        </div>
-      </div>
-
-      {/* COACH */}
-      <div style={styles.card}>
-        <h3>🧠 Coach</h3>
-        <p>{getCoach()}</p>
-      </div>
-
-      {/* LEVEL */}
-      <div style={styles.card}>
-        <h3>Level {level}</h3>
-        <div style={styles.bar}>
-          <div
-            style={{
-              ...styles.fill,
-              width: `${(xp / (level * 100)) * 100}%`,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* ADD */}
-      <div style={styles.card}>
-        <input placeholder="Name" onChange={(e) => setName(e.target.value)} />
-        <input placeholder="Balance" onChange={(e) => setBalance(e.target.value)} />
-        <input type="date" onChange={(e) => setDue(e.target.value.slice(5))} />
-        <button onClick={addDebt}>Add</button>
-      </div>
-
-      {/* ACCOUNTS */}
-      {debts.map((d, i) => (
-        <div key={i} style={styles.account}>
-          <div>
-            <strong>{d.name}</strong>
-            <p>${(displayBalances[i] ?? d.balance).toFixed(2)}</p>
-            <small>Due: {dueDates[i] || "--"}</small>
-          </div>
-
-          <div>
-            <input
-              placeholder="$"
-              onChange={(e) =>
-                setPaymentInputs({
-                  ...paymentInputs,
-                  [i]: e.target.value,
-                })
-              }
-              style={styles.input}
-            />
-            <button onClick={() => applyPayment(i)}>Pay</button>
+      {/* ACHIEVEMENTS */}
+      {tab === "achievements" && (
+        <div style={styles.card}>
+          <h3>🏆 Achievements</h3>
+          <div style={styles.badgeGrid}>
+            {badges.map((b, i) => (
+              <div
+                key={i}
+                style={{
+                  ...styles.badge,
+                  transform:
+                    animateBadge === b ? "scale(1.2)" : "scale(1)",
+                }}
+              >
+                {b}
+              </div>
+            ))}
           </div>
         </div>
-      ))}
-
-      {/* BADGES */}
-      <div style={styles.card}>
-        <h3>🏆 Achievements</h3>
-        <div style={styles.badgeGrid}>
-          {badges.map((b, i) => (
-            <div
-              key={i}
-              style={{
-                ...styles.badge,
-                transform:
-                  animateBadge === b ? "scale(1.2)" : "scale(1)",
-                boxShadow:
-                  animateBadge === b ? "0 0 15px gold" : "none",
-              }}
-            >
-              {b}
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </main>
   );
 }
@@ -284,48 +281,56 @@ export default function Page() {
 /* 🎨 STYLES */
 const styles = {
   main: {
-    minHeight: "100vh",
-    background: "linear-gradient(180deg,#0f172a,#020617)",
-    padding: 20,
+    background: "#0f172a",
     color: "white",
-    fontFamily: "system-ui",
+    minHeight: "100vh",
+    padding: 20,
   },
   header: {
-    background: "linear-gradient(135deg,#2563eb,#1d4ed8)",
-    padding: 25,
-    borderRadius: 16,
-    marginBottom: 20,
     textAlign: "center",
-  },
-  alert: {
-    background: "#f59e0b",
-    color: "black",
-    padding: 10,
-    borderRadius: 10,
     marginBottom: 15,
+  },
+  tabs: {
+    display: "flex",
+    gap: 10,
+    marginBottom: 15,
+  },
+  tab: {
+    flex: 1,
+    padding: 10,
+    background: "#1e293b",
+    border: "none",
+    borderRadius: 8,
+    color: "white",
+  },
+  activeTab: {
+    flex: 1,
+    padding: 10,
+    background: "#2563eb",
+    border: "none",
+    borderRadius: 8,
+    color: "white",
   },
   card: {
     background: "#1e293b",
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 10,
     marginBottom: 15,
   },
   account: {
-    background: "#0f172a",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
     display: "flex",
     justifyContent: "space-between",
+    background: "#020617",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   input: {
     width: 60,
-    marginRight: 5,
   },
   bar: {
     height: 8,
     background: "#334155",
-    borderRadius: 10,
   },
   fill: {
     height: "100%",
@@ -333,13 +338,12 @@ const styles = {
   },
   badgeGrid: {
     display: "flex",
-    flexWrap: "wrap",
     gap: 8,
+    flexWrap: "wrap",
   },
   badge: {
     background: "#22c55e",
-    padding: "6px 10px",
-    borderRadius: 8,
-    transition: "0.3s",
+    padding: "5px 10px",
+    borderRadius: 6,
   },
 };
