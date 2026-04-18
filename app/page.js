@@ -3,10 +3,13 @@ import { useState, useEffect } from "react";
 
 export default function Page() {
   const [premium, setPremium] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // ✅ STRIPE UPGRADE FUNCTION (THIS WAS MISSING / WRONG)
+  // 💳 STRIPE CHECKOUT
   const upgrade = async () => {
     try {
+      setLoading(true);
+
       const res = await fetch(
         `${window.location.origin}/api/checkout`,
         { method: "POST" }
@@ -15,7 +18,8 @@ export default function Page() {
       const data = await res.json();
 
       if (!data.url) {
-        alert("No checkout URL returned");
+        alert("ERROR: " + data.error);
+        setLoading(false);
         return;
       }
 
@@ -23,10 +27,11 @@ export default function Page() {
     } catch (err) {
       console.error(err);
       alert("Payment failed to start");
+      setLoading(false);
     }
   };
 
-  // ✅ HANDLE SUCCESS RETURN FROM STRIPE
+  // ✅ HANDLE SUCCESS RETURN
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
@@ -41,41 +46,61 @@ export default function Page() {
   }, []);
 
   return (
-    <main style={{
-      padding: 20,
-      maxWidth: 500,
-      margin: "auto",
-      fontFamily: "sans-serif"
-    }}>
-      <h1>💸 Debt Planner</h1>
-      <p>RA Customs</p>
+    <main
+      style={{
+        padding: "40px 20px",
+        maxWidth: 800,
+        margin: "auto",
+        fontFamily: "sans-serif",
+      }}
+    >
+      {/* HEADER */}
+      <h1 style={{ fontSize: 32, fontWeight: "700" }}>
+        💸 Debt Planner
+      </h1>
+      <p style={{ opacity: 0.6 }}>by RA Customs</p>
 
-      <div style={{
-        marginTop: 20,
-        padding: 20,
-        borderRadius: 10,
-        background: "#f5f5f5"
-      }}>
-        <h3>Premium Feature</h3>
+      {/* CARD */}
+      <div
+        style={{
+          marginTop: 30,
+          padding: 30,
+          borderRadius: 16,
+          background: "linear-gradient(145deg, #f8fafc, #e2e8f0)",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+        }}
+      >
+        <h3 style={{ fontSize: 20, marginBottom: 15 }}>
+          Premium Feature
+        </h3>
 
         <button
           onClick={premium ? () => alert("Feature unlocked!") : upgrade}
+          disabled={loading}
           style={{
-            padding: 12,
-            borderRadius: 8,
+            padding: 16,
+            borderRadius: 12,
             border: "none",
-            background: premium ? "#22c55e" : "#0070f3",
+            background: premium
+              ? "linear-gradient(90deg,#22c55e,#16a34a)"
+              : "linear-gradient(90deg,#2563eb,#1d4ed8)",
             color: "white",
             width: "100%",
             cursor: "pointer",
-            fontSize: 16
+            fontSize: 18,
+            fontWeight: "600",
+            opacity: loading ? 0.7 : 1,
           }}
         >
-          {premium ? "Premium Unlocked ✅" : "Unlock Premium 💳"}
+          {premium
+            ? "Premium Unlocked ✅"
+            : loading
+            ? "Loading..."
+            : "Unlock Premium 💳"}
         </button>
 
         {!premium && (
-          <p style={{ marginTop: 10, opacity: 0.6 }}>
+          <p style={{ marginTop: 12, opacity: 0.6 }}>
             🔒 Payment required to unlock
           </p>
         )}
